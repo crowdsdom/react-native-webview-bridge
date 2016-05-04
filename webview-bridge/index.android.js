@@ -170,10 +170,8 @@ var WebViewBridge = React.createClass({
     );
   },
 
-
   injectBridgeScript: function () {
-    var injectScript = `window.WebViewBridge = { send: function(message) { WebViewBridgeAndroid.send(message); }, onMessage: function(message) { } };`;
-    //var injectScript = '(function(){\nif (window.WebViewBridge) { return; }\nwindow.WebViewBridge = {\nsend: function(message) { WebViewBridgeAndroid.send(message); },\nonMessage: function() { $("body").append("<h1>got a message from App: " + message + "</h1>"); window.WebViewBridge.send("message from webview"); }\n};\n}());';
+    var injectScript = `window.WebViewBridge = { send: function(message) { WebViewBridgeAndroid.send(message); }, onMessage: function(message) { } }; var customEvent = document.createEvent('Event'); customEvent.initEvent('WebViewBridge', true, true); document.dispatchEvent(customEvent);`;
     this.execJS(injectScript);
   },
 

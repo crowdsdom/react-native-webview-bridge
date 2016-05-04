@@ -115,6 +115,19 @@ RCT_EXPORT_METHOD(sendToBridge:(nonnull NSNumber *)reactTag
   }];
 }
 
+RCT_EXPORT_METHOD(execJS:(nonnull NSNumber *)reactTag
+                  value:(NSString*)jsCode)
+{
+  [self.bridge.uiManager addUIBlock:^(__unused RCTUIManager *uiManager, NSDictionary<NSNumber *, RCTWebViewBridge *> *viewRegistry) {
+    RCTWebViewBridge *view = viewRegistry[reactTag];
+    if (![view isKindOfClass:[RCTWebViewBridge class]]) {
+      RCTLogError(@"Invalid view returned from registry, expecting RCTWebViewBridge, got: %@", view);
+    } else {
+      [view execJS: jsCode];
+    }
+  }];
+}
+
 #pragma mark - Exported synchronous methods
 
 - (BOOL)webView:(__unused RCTWebViewBridge *)webView
