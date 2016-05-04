@@ -66,17 +66,14 @@ var WebViewBridge = React.createClass({
   },
 
   componentWillMount: function() {
-    DeviceEventEmitter.addListener("webViewBridgeMessage", (body) => {
-      const { onBridgeMessage } = this.props;
-      const message = body.message;
-      if (onBridgeMessage) {
-        onBridgeMessage(message);
-      }
-    });
+    this._bridgeMessageSub = DeviceEventEmitter.addListener("webViewBridgeMessage", this.onBridgeMessage);
 
     if (this.props.startInLoadingState) {
       this.setState({viewState: WebViewBridgeState.LOADING});
     }
+  },
+  componentWillUnmount() {
+    this._bridgeMessageSub && this._bridgeMessageSub.remove();
   },
 
   render: function() {
@@ -165,12 +162,19 @@ var WebViewBridge = React.createClass({
     );
   },
 
-  injectBridgeScript: function () {
+  execJS: function (jsCode: string) {
     UIManager.dispatchViewManagerCommand(
       this.getWebViewBridgeHandle(),
-      UIManager.RCTWebViewBridge.Commands.injectBridgeScript,
-      null
+      UIManager.RCTWebViewBridge.Commands.exec,
+      [jsCode]
     );
+  },
+
+
+  injectBridgeScript: function () {
+    var injectScript = `window.WebViewBridge = { send: function(message) { WebViewBridgeAndroid.send(message); }, onMessage: function(message) { } };`;
+    //var injectScript = '(function(){\nif (window.WebViewBridge) { return; }\nwindow.WebViewBridge = {\nsend: function(message) { WebViewBridgeAndroid.send(message); },\nonMessage: function() { $("body").append("<h1>got a message from App: " + message + "</h1>"); window.WebViewBridge.send("message from webview"); }\n};\n}());';
+    this.execJS(injectScript);
   },
 
   /**
@@ -188,7 +192,6 @@ var WebViewBridge = React.createClass({
   },
 
   onLoadingStart: function(event) {
-    this.injectBridgeScript();
     var onLoadStart = this.props.onLoadStart;
     onLoadStart && onLoadStart(event);
     this.updateNavigationState(event);
@@ -208,6 +211,7 @@ var WebViewBridge = React.createClass({
   },
 
   onLoadingFinish: function(event) {
+    this.injectBridgeScript();
     var {onLoad, onLoadEnd} = this.props;
     onLoad && onLoad(event);
     onLoadEnd && onLoadEnd(event);
@@ -216,6 +220,14 @@ var WebViewBridge = React.createClass({
     });
     this.updateNavigationState(event);
   },
+
+  onBridgeMessage: function(body) {
+    const { onBridgeMessage } = this.props;
+    const message = body.message;
+    if (onBridgeMessage) {
+      onBridgeMessage(message);
+    }
+  }
 });
 
 var RCTWebViewBridge = requireNativeComponent('RCTWebViewBridge', WebViewBridge);
